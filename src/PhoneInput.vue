@@ -5,7 +5,7 @@
                 <div v-bind:class="`iti-flag ${countryCode}`"></div>
                 <div v-bind:class="`iti-arrow${isVisiblePanel ? ' up' : ''}`"></div>
             </div>
-            <ul class="country-list" v-if="isVisiblePanel">
+            <ul class="country-list" v-show="isVisiblePanel">
                 <li v-for="item in itemsData.frontItems" v-bind:class="`country${item.code === countryCode ? ' highlight' : ''}`" v-on:click.stop="setCode(item.code)">
                     <div class="flag-box">
                         <div v-bind:class="`iti-flag ${item.code}`"></div>
@@ -35,8 +35,6 @@
     const isArray = maybeArray => Object.prototype.toString.call(maybeArray) === '[object Array]';
     const isString = maybeString => Object.prototype.toString.call(maybeString) === '[object String]';
     const isFunction = maybeFunc => Object.prototype.toString.call(maybeFunc) === '[object Function]';
-
-    /* eslint-disable object-curly-newline */
 
     const phonesData = {
         af: {code: 'af', name: 'Afghanistan (‫افغانستان‬‎)', dialCode: 93, example: '070 123 4567'},
@@ -309,57 +307,15 @@
         ax: {code: 'ax', name: 'Åland Islands', dialCode: 358, example: '041 2345678'},
     };
 
-    /* eslint-enable object-curly-newline, no-unused-vars */
-
     let counter = 0;
 
     export default {
         name: 'phone-input',
-        props: {
-            phone: {
-                type: Object,
-            },
-            name: {
-                type: String,
-                default() {
-                    counter += 1;
-                    return `tel-input-${counter}`;
-                },
-            },
-            value: {
-                type: [
-                    Number,
-                    String,
-                ],
-                default: '',
-            },
-            availableOnly: {
-                type: Array,
-                default: null,
-            },
-            toFront: {
-                type: Array,
-                default() {
-                    return [];
-                },
-            },
-            code: {
-                type: String,
-                default: null,
-            },
-            onChange: {
-                type: Function,
-                default: null,
-            },
-            onInit: {
-                type: Function,
-                default: null,
-            },
-        },
 
         data() {
-            const {code, availableOnly, value} = this;
+            const {phone, availableOnly, value} = this;
             let tmpPhonesData = Object.assign({}, phonesData);
+            let needCode;
 
             if (isArray(availableOnly)) {
                 tmpPhonesData = {};
@@ -371,7 +327,13 @@
             }
 
             this.availableData = tmpPhonesData;
-            const needCode = has.call(this.availableData, code) ? code : Object.keys(this.availableData)[0];
+            if (phone.country.length && phone.country in tmpPhonesData) {
+                needCode = phone.country;
+            } else {
+                needCode = has.call(this.availableData, phone.code)
+                    ? phone.code
+                    : Object.keys(this.availableData)[0];
+            }
 
             if (!needCode) {
                 throw new Error('Available data is empty.Please set correct "availableOnly" attribute [vue-phone-input]');
@@ -416,6 +378,12 @@
             },
         },
 
+        watch: {
+            'phone.country': function (val) {
+                this.countryCode = val;
+            },
+        },
+
         methods: {
             handleChangePhoneNumber(event) {
                 this.phone.number = event.target.value;
@@ -426,15 +394,16 @@
             },
 
             setCode(code) {
-                this.countryCode = code;
-                this.phone.codeCountry = this.countryCode;
+                this.phone.country = code;
                 let vm = this;
 
-                Object.keys(phonesData).forEach((key, index) => {
+                Object.keys(phonesData).every(key => {
                     let phoneData = phonesData[key];
-                    if (phoneData.code == code) {
+                    if (phoneData.code === code) {
                         vm.phone.code = phoneData.dialCode;
+                        return false;
                     }
+                    return true;
                 });
 
                 this.hideList();
@@ -459,7 +428,7 @@
 
                 Object.keys(phonesData).every(key => {
                     let phoneData = phonesData[key];
-                    const regex = new RegExp(`^\\+?${phoneData.dialCode}`);
+                    const regex = new RegExp(`^\\+${phoneData.dialCode}`);
                     const matches = this.phone.number.match(regex);
                     if (matches) {
                         this.setCode(phoneData.code);
@@ -478,6 +447,44 @@
             }
 
             this.changeCountry();
+        },
+
+        props: {
+            phone: {
+                type: Object,
+            },
+            name: {
+                type: String,
+                default() {
+                    counter += 1;
+                    return `tel-input-${counter}`;
+                },
+            },
+            value: {
+                type: [
+                    Number,
+                    String,
+                ],
+                default: '',
+            },
+            availableOnly: {
+                type: Array,
+                default: null,
+            },
+            toFront: {
+                type: Array,
+                default() {
+                    return [];
+                },
+            },
+            onChange: {
+                type: Function,
+                default: null,
+            },
+            onInit: {
+                type: Function,
+                default: null,
+            },
         },
     };
 </script>
