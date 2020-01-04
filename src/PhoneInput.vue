@@ -314,8 +314,12 @@
 
         data() {
             const {phone, availableOnly, value} = this;
+
+            if (value && !phone.number) {
+                phone.number = value;
+            }
+
             let tmpPhonesData = Object.assign({}, phonesData);
-            let needCode;
 
             if (isArray(availableOnly)) {
                 tmpPhonesData = {};
@@ -326,22 +330,13 @@
                 });
             }
 
-            this.availableData = tmpPhonesData;
-            if (phone.country.length && phone.country in tmpPhonesData) {
-                needCode = phone.country;
-            } else {
-                needCode = has.call(this.availableData, phone.code)
-                    ? phone.code
-                    : Object.keys(this.availableData)[0];
-            }
+            this.changeCountry();
 
-            if (!needCode) {
-                throw new Error('Available data is empty.Please set correct "availableOnly" attribute [vue-phone-input]');
-            }
+            this.availableData = tmpPhonesData;
 
             return {
                 // phoneNumber: value,
-                countryCode: needCode,
+                countryCode: phone.country || Object.keys(this.availableData)[0],
                 isVisiblePanel: false,
             };
         },
@@ -422,7 +417,7 @@
             },
 
             changeCountry() {
-                if (!this.phone.number.length) {
+                if (!this.phone.number) {
                     return;
                 }
 
@@ -431,9 +426,9 @@
                     const regex = new RegExp(`^\\+${phoneData.dialCode}`);
                     const matches = this.phone.number.match(regex);
                     if (matches) {
-                        this.setCode(phoneData.code);
                         this.phone.number = this.phone.number.replace(matches[0], '');
                         this.phone.code = phoneData.dialCode;
+                        this.phone.country = key;
                         return false;
                     }
                     return true;
@@ -445,8 +440,6 @@
             if (isFunction(this.onInit)) {
                 this.onInit(this);
             }
-
-            this.changeCountry();
         },
 
         props: {
