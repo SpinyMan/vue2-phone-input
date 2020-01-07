@@ -374,8 +374,11 @@
         },
 
         watch: {
-            'phone.country': function (val) {
-                this.countryCode = val;
+            phone: {
+                handler: function (val) {
+                    this.countryCode = val.country;
+                },
+                deep: true,
             },
         },
 
